@@ -176,7 +176,7 @@ def get(key, ttl_if_stale=None, unzip=True):
 
   # memcache will always miss on overflow records - they are stored in pckey-overflow-N records
   if res:
-    #logging.info('Memcache hit on key (non-overflow): %s' % key)
+    logging.info('Memcache hit on key (non-overflow): %s' % key)
     return unpack(res, unzip)
   cache = PersistentCache.get_by_key_name(key)
   if cache is None:
@@ -192,7 +192,8 @@ def get(key, ttl_if_stale=None, unzip=True):
         break
       zipdata_str += overflow_data
 
-  #logging.info('Retrieved %d chunk(s) of data for key %s' % ((1 + cache.num_overflow_chunks), key))
+  logging.info('Retrieved %d chunk(s) of data for key %s' % ((1 + cache.num_overflow_chunks), key))
+  logging.info("Cache ttl_ts is %s, now is %s" % (str(cache.ttl_ts), str(t_now)))
   if cache.ttl_ts and cache.ttl_ts < t_now:
     if ttl_if_stale is None:
       logging.info('Persistent cache miss for key: %s', key)
@@ -201,7 +202,9 @@ def get(key, ttl_if_stale=None, unzip=True):
     # this will return stale cache, from disk and leave memcache alone.  next hit will
     # also miss unless the caller recomputes, ie async recompute task
     data = unpack(zipdata_str, unzip)
+    logging.info("type of unpacked data is %s" % type(data).__name__)
     if isinstance(data, dict):
+      logging.info("setting ttl element in outgoing data")
       data['ttl'] = cache.ttl_ts
     #logging.info("Memcache hit on key (stale but ttl_if_stale=True): %s" % key)
     return data
